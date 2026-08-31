@@ -1,5 +1,6 @@
 package com.adrinand.ktile.core.screen
 
+import com.adrinand.ktile.ui.PREVIEW_WINDOW_TITLE
 import com.sun.jna.NativeLong
 import com.sun.jna.platform.unix.X11
 import com.sun.jna.ptr.IntByReference
@@ -19,7 +20,11 @@ private data class X11Data(
     val maxHorzAtom: X11.Atom,
 )
 
-object X11FullscreenStrategy : FullscreenStrategy {
+/**
+ * X11 fullscreen helper that requests `_NET_WM_STATE_MAXIMIZED_VERT | HORZ`
+ * for the KTile preview window.
+ */
+object X11Fullscreen {
     private const val NET_WM_STATE_REMOVE = 0L
     private const val NET_WM_STATE_ADD = 1L
     private const val NO_DATA = 0L
@@ -44,18 +49,18 @@ object X11FullscreenStrategy : FullscreenStrategy {
             maxHorzAtom = x11.XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_HORZ", false),
         )
 
-    override suspend fun setFullscreen(window: Window) {
+    suspend fun setFullscreen(window: Window) {
         val x11 = X11.INSTANCE
         val display = x11.XOpenDisplay(null)
         if (display == null) {
-            AwtFullscreenStrategy.setFullscreen(window)
+            AwtFullscreen.setFullscreen(window)
             return
         }
         try {
             val atoms = extractX11Data(x11, display)
             val windowId = resolveWindowId(x11, display, atoms, window)
             if (windowId == null) {
-                AwtFullscreenStrategy.setFullscreen(window)
+                AwtFullscreen.setFullscreen(window)
                 return
             }
             requestMaximizeState(atoms, windowId, add = false)
@@ -73,7 +78,7 @@ object X11FullscreenStrategy : FullscreenStrategy {
         }
     }
 
-    override suspend fun waitForFullscreen(
+    suspend fun waitForFullscreen(
         window: Window,
         timeoutMs: Long,
     ): Boolean {
@@ -188,7 +193,7 @@ object X11FullscreenStrategy : FullscreenStrategy {
         }
         val name = namePointer.value.getString(0)
         x11.XFree(namePointer.value)
-        return name == FullscreenHelper.WINDOW_TITLE
+        return name == PREVIEW_WINDOW_TITLE
     }
 
     private fun findInChildren(

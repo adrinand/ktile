@@ -8,7 +8,7 @@ import org.junit.Test
 import java.awt.Frame
 import java.awt.GraphicsEnvironment
 
-class AwtFullscreenStrategyTest {
+class AwtFullscreenTest {
     @Before
     fun requireDisplay() {
         assumeFalse("Skipping: headless environment", GraphicsEnvironment.isHeadless())
@@ -20,7 +20,7 @@ class AwtFullscreenStrategyTest {
             val frame = Frame()
             frame.addNotify()
             try {
-                AwtFullscreenStrategy.setFullscreen(frame)
+                AwtFullscreen.setFullscreen(frame)
 
                 val device = frame.graphicsConfiguration.device
                 device.fullScreenWindow shouldBe frame
@@ -35,7 +35,7 @@ class AwtFullscreenStrategyTest {
         runBlocking {
             val frame = Frame()
 
-            AwtFullscreenStrategy.setFullscreen(frame)
+            AwtFullscreen.setFullscreen(frame)
 
             frame.dispose()
         }

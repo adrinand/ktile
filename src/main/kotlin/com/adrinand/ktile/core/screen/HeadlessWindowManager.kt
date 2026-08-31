@@ -1,6 +1,7 @@
 package com.adrinand.ktile.core.screen
 
 import java.awt.Rectangle
+import java.awt.Window
 
 /**
  * No-op [WindowManager] for headless environments and tests.
@@ -32,6 +33,11 @@ class HeadlessWindowManager : WindowManager {
     override fun focusWindow(window: WindowHandle) {
         lastActiveWindowHandle = window
     }
+
+    override suspend fun enterFullscreen(
+        window: Window,
+        timeoutMs: Long,
+    ): Boolean = true
 
     companion object {
         const val DEFAULT_HEADLESS_WINDOW_ID = 42L

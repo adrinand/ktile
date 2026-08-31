@@ -7,15 +7,28 @@ import java.awt.Color
 import java.awt.Font
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
+import javax.imageio.ImageIO
 
+private const val ICON_RESOURCE = "ktile.png"
 private const val ICON_SIZE = 64
 private const val ICON_MARGIN = 4
 private const val FONT_SIZE = 32
 
 /**
- * Generates a default tray icon: a purple circle with a white "K".
+ * Loads the application tray icon from resources, falling back to a generated
+ * purple circle with a white "K" if the resource is unavailable.
  */
-fun createTrayIcon(): Painter {
+fun createTrayIcon(): Painter = BitmapPainter(createTrayImage().toComposeImageBitmap())
+
+/**
+ * Loads or generates the tray icon image.
+ */
+fun createTrayImage(): BufferedImage {
+    val resource = Thread.currentThread().contextClassLoader.getResource(ICON_RESOURCE)
+    return resource?.let { ImageIO.read(it) } ?: generateTrayImage()
+}
+
+private fun generateTrayImage(): BufferedImage {
     val image = BufferedImage(ICON_SIZE, ICON_SIZE, BufferedImage.TYPE_INT_ARGB)
     val graphics = image.createGraphics()
     graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
@@ -33,5 +46,5 @@ fun createTrayIcon(): Painter {
     graphics.drawString(text, textX, textY)
 
     graphics.dispose()
-    return BitmapPainter(image.toComposeImageBitmap())
+    return image
 }

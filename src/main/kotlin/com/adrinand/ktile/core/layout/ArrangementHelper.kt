@@ -5,6 +5,14 @@ import java.awt.Rectangle
 private const val MIN_DIMENSION = 1
 
 /**
+ * Position of a single cell inside the raw layout grid.
+ */
+data class TilePosition(
+    val row: Int,
+    val col: Int,
+)
+
+/**
  * Returns all layout positions whose label matches one of [selectedKeys].
  *
  * Matching is case-insensitive. Because layout keys are unique, this normally

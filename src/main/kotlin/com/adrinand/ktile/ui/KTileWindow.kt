@@ -25,7 +25,6 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.window.Window
 import com.adrinand.ktile.core.hotkey.getDisplayCharFromKeyEvent
 import com.adrinand.ktile.core.screen.ArrangementController
-import com.adrinand.ktile.core.screen.FullscreenHelper
 import com.adrinand.ktile.core.screen.isLinux
 import com.adrinand.ktile.core.screen.isX11Session
 import com.adrinand.ktile.core.screen.skipTaskbarX11
@@ -37,6 +36,8 @@ import java.util.logging.Logger
 import kotlin.time.Duration.Companion.milliseconds
 
 private val logger = Logger.getLogger("com.adrinand.ktile.ui.KTileWindow")
+
+const val PREVIEW_WINDOW_TITLE = "KTile Preview"
 
 private const val SHOW_POLL_INTERVAL_MS = 100L
 private const val MAX_SHOW_WAIT_MS = 500L
@@ -112,7 +113,7 @@ fun KTileWindow(
         onCloseRequest = onClose,
         undecorated = true,
         transparent = true,
-        title = FullscreenHelper.WINDOW_TITLE,
+        title = PREVIEW_WINDOW_TITLE,
     ) {
         LaunchedEffect(Unit) {
             logger.info { "KTileWindow content composed, window=$window, visible=$visible" }
@@ -194,7 +195,7 @@ fun KTileWindow(
 
         launch {
             win.isResizable = true
-            FullscreenHelper.enterFullscreen(win, FULLSCREEN_WAIT_TIMEOUT_MS)
+            arrangementController.windowManager.enterFullscreen(win, FULLSCREEN_WAIT_TIMEOUT_MS)
             win.isResizable = false
         }
     }

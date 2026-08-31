@@ -25,7 +25,7 @@ private const val HEX_RADIX = 16
  * Orchestrates capturing the target window and applying a tiled bounds to it.
  */
 class ArrangementController(
-    private val windowManager: WindowManager,
+    val windowManager: WindowManager,
 ) {
     private var targetWindow: WindowHandle? = null
 

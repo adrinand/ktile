@@ -5,7 +5,11 @@ import com.sun.jna.platform.unix.X11
 import com.sun.jna.ptr.IntByReference
 import com.sun.jna.ptr.NativeLongByReference
 import com.sun.jna.ptr.PointerByReference
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.awt.Rectangle
+import java.awt.Window
+import java.util.logging.Logger
 
 /**
  * [WindowManager] implementation backed by X11.
@@ -13,7 +17,9 @@ import java.awt.Rectangle
  * Reads the active window from the `_NET_ACTIVE_WINDOW` root property and
  * applies bounds with [X11Extra.XMoveResizeWindow].
  */
-object X11WindowManager : WindowManager {
+object X11WindowManager : SingleBackendWindowManager<WindowHandle.X11>() {
+    override val logger = Logger.getLogger("com.adrinand.ktile.core.screen.X11WindowManager")
+
     private const val CLIENT_MESSAGE_FORMAT = 32
     private const val NET_WM_STATE_REMOVE = 0L
     private const val NO_DATA = 0L
@@ -32,7 +38,9 @@ object X11WindowManager : WindowManager {
         val maxHorz: X11.Atom,
     )
 
-    override fun getActiveWindowId(): WindowHandle? {
+    override fun isCompatibleHandle(window: WindowHandle): Boolean = window is WindowHandle.X11
+
+    override fun retrieveActiveWindow(): WindowHandle.X11? {
         val x11 = X11.INSTANCE
         val display = x11.XOpenDisplay(null) ?: return null
         return try {
@@ -44,11 +52,10 @@ object X11WindowManager : WindowManager {
         }
     }
 
-    override fun setWindowBounds(
-        window: WindowHandle,
+    override fun applyBounds(
+        handle: WindowHandle.X11,
         bounds: Rectangle,
     ) {
-        val windowId = (window as? WindowHandle.X11)?.id ?: return
         val x11 = X11.INSTANCE
         val display = x11.XOpenDisplay(null) ?: return
         try {
@@ -62,11 +69,11 @@ object X11WindowManager : WindowManager {
                     maxHorz = x11.XInternAtom(display, "_NET_WM_STATE_MAXIMIZED_HORZ", false),
                 )
 
-            removeMaximizedState(atoms, windowId)
+            removeMaximizedState(atoms, handle.id)
 
             X11Extra.INSTANCE.XMoveResizeWindow(
                 display,
-                X11.Window(windowId),
+                X11.Window(handle.id),
                 bounds.x,
                 bounds.y,
                 bounds.width.coerceAtLeast(MIN_WINDOW_DIMENSION),
@@ -78,8 +85,7 @@ object X11WindowManager : WindowManager {
         }
     }
 
-    override fun focusWindow(window: WindowHandle) {
-        val windowId = (window as? WindowHandle.X11)?.id ?: return
+    override fun focusHandle(handle: WindowHandle.X11) {
         val x11 = X11.INSTANCE
         val display = x11.XOpenDisplay(null) ?: return
         try {
@@ -88,7 +94,7 @@ object X11WindowManager : WindowManager {
             val event = X11.XEvent()
             event.setType(X11.XClientMessageEvent::class.java)
             event.xclient.type = X11.ClientMessage
-            event.xclient.window = X11.Window(windowId)
+            event.xclient.window = X11.Window(handle.id)
             event.xclient.message_type = netActiveWindow
             event.xclient.format = CLIENT_MESSAGE_FORMAT
             event.xclient.data.setType(Array<NativeLong>::class.java)
@@ -105,6 +111,15 @@ object X11WindowManager : WindowManager {
             x11.XCloseDisplay(display)
         }
     }
+
+    override suspend fun enterFullscreen(
+        window: Window,
+        timeoutMs: Long,
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            X11Fullscreen.setFullscreen(window)
+            X11Fullscreen.waitForFullscreen(window, timeoutMs)
+        }
 
     private fun removeMaximizedState(
         atoms: X11Atoms,

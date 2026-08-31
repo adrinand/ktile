@@ -6,7 +6,7 @@ import org.junit.Test
 import java.awt.Rectangle
 
 @Suppress("TooManyFunctions")
-class TileBoundsCalculatorTest {
+class ArrangementHelperTest {
     @Test
     fun `findKeyPositions returns positions for selected keys`() {
         val keyLabels =

@@ -7,13 +7,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.application
-import androidx.compose.ui.window.isTraySupported
 import com.adrinand.ktile.core.comms.AppSocketComms
 import com.adrinand.ktile.core.persistence.repo.SettingsRepository
 import com.adrinand.ktile.core.screen.ArrangementController
 import com.adrinand.ktile.core.screen.WindowManager
 import com.adrinand.ktile.core.screen.createWindowManager
-import com.adrinand.ktile.core.screen.isLinux
 import com.adrinand.ktile.ui.InputPermissionWarningDialog
 import com.adrinand.ktile.ui.KTileTray
 import com.adrinand.ktile.ui.KTileWindow
@@ -98,13 +96,11 @@ private fun runApplication(settingsRequestChannel: Channel<Unit>) {
             )
         }
 
-        if (!isLinux() && isTraySupported) {
-            KTileTray(
-                icon = trayIcon,
-                onToggle = { isWindowVisible = !isWindowVisible },
-                onSettings = { showSettings = true },
-            )
-        }
+        KTileTray(
+            icon = trayIcon,
+            onToggle = { isWindowVisible = !isWindowVisible },
+            onSettings = { showSettings = true },
+        )
 
         if (showSettings) {
             SettingsWindow(

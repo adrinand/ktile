@@ -1,6 +1,7 @@
 package com.adrinand.ktile.core.screen
 
 import java.awt.Rectangle
+import java.awt.Window
 
 /**
  * Abstraction over the OS windowing layer used to read the active/focused window
@@ -25,4 +26,13 @@ interface WindowManager {
      * Requests that [window] become the active/focused window.
      */
     fun focusWindow(window: WindowHandle)
+
+    /**
+     * Makes the KTile preview [window] fullscreen and waits for the state to
+     * be applied, returning `true` if fullscreen was confirmed.
+     */
+    suspend fun enterFullscreen(
+        window: Window,
+        timeoutMs: Long,
+    ): Boolean
 }

@@ -1,9 +1,8 @@
 package com.adrinand.ktile.core.screen
 
 import java.awt.Rectangle
+import java.awt.Window
 import java.util.logging.Logger
-
-private val logger = Logger.getLogger("com.adrinand.ktile.core.screen.MacWindowManager")
 
 /**
  * [WindowManager] implementation for macOS using the Accessibility API.
@@ -12,10 +11,14 @@ private val logger = Logger.getLogger("com.adrinand.ktile.core.screen.MacWindowM
  * operates on that application's focused window. macOS requires the user to
  * grant Accessibility permissions to KTile before these calls succeed.
  */
-class MacWindowManager : WindowManager {
+class MacWindowManager : SingleBackendWindowManager<WindowHandle.Mac>() {
+    override val logger = Logger.getLogger("com.adrinand.ktile.core.screen.MacWindowManager")
+
     private val app = ApplicationServices.INSTANCE
 
-    override fun getActiveWindowId(): WindowHandle? {
+    override fun isCompatibleHandle(window: WindowHandle): Boolean = window is WindowHandle.Mac
+
+    override fun retrieveActiveWindow(): WindowHandle.Mac? {
         val systemWide = app.AXUIElementCreateSystemWide()
         return try {
             if (systemWide.pointer == null) {
@@ -29,18 +32,13 @@ class MacWindowManager : WindowManager {
         }
     }
 
-    override fun setWindowBounds(
-        window: WindowHandle,
+    override fun applyBounds(
+        handle: WindowHandle.Mac,
         bounds: Rectangle,
     ) {
-        val macWindow = window as? WindowHandle.Mac
-        if (macWindow == null) {
-            logger.warning { "Ignoring setWindowBounds for non-macOS handle: $window" }
-            return
-        }
-        val appElement = app.AXUIElementCreateApplication(macWindow.pid.toInt())
+        val appElement = app.AXUIElementCreateApplication(handle.pid.toInt())
         if (appElement.pointer == null) {
-            logger.warning { "Failed to create accessibility element for pid ${macWindow.pid}" }
+            logger.warning { "Failed to create accessibility element for pid ${handle.pid}" }
             return
         }
         try {
@@ -56,9 +54,8 @@ class MacWindowManager : WindowManager {
         }
     }
 
-    override fun focusWindow(window: WindowHandle) {
-        val macWindow = window as? WindowHandle.Mac ?: return
-        val appElement = app.AXUIElementCreateApplication(macWindow.pid.toInt())
+    override fun focusHandle(handle: WindowHandle.Mac) {
+        val appElement = app.AXUIElementCreateApplication(handle.pid.toInt())
         if (appElement.pointer == null) {
             return
         }
@@ -74,7 +71,15 @@ class MacWindowManager : WindowManager {
         }
     }
 
-    private fun buildMacHandle(systemWide: AXUIElementRef): WindowHandle? {
+    override suspend fun enterFullscreen(
+        window: Window,
+        timeoutMs: Long,
+    ): Boolean {
+        AwtFullscreen.setFullscreen(window)
+        return true
+    }
+
+    private fun buildMacHandle(systemWide: AXUIElementRef): WindowHandle.Mac? {
         val focusedAppPointer = copyAttribute(app, systemWide, kAXFocusedApplicationAttribute) ?: return null
         val focusedApp = AXUIElementRef(focusedAppPointer.pointer)
         try {

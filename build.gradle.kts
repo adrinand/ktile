@@ -23,6 +23,8 @@ dependencies {
     implementation(libs.jna.platform)
     implementation(libs.jnativehook)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.dorkbox.systemtray)
+    runtimeOnly(libs.slf4j.nop)
 
     // Kotest (unit tests)
     testImplementation(libs.kotest.runner.junit5)
@@ -130,6 +132,8 @@ kover {
                     "com.adrinand.ktile.core.hotkey.InputDevicePermissionChecker",
                     "com.adrinand.ktile.ui.KTileWindowKt*",
                     "com.adrinand.ktile.ui.KTileTrayKt*",
+                    "com.adrinand.ktile.ui.TrayIconKt*",
+                    "com.adrinand.ktile.ui.tray.*",
                     "com.adrinand.ktile.ui.GlobalHotkeyRegistration*",
                 )
             }
