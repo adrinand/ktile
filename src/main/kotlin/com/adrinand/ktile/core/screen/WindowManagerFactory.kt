@@ -2,7 +2,7 @@ package com.adrinand.ktile.core.screen
 
 import java.util.logging.Logger
 
-private val logger = Logger.getLogger("com.adrinand.ktile.core.screen.WindowManagerFactory")
+private val logger: Logger = Logger.getLogger("com.adrinand.ktile.core.screen.WindowManagerFactory")
 
 /**
  * Detects the current desktop session and returns the most appropriate

@@ -1,7 +1,5 @@
 package com.adrinand.ktile.core.screen
 
-import com.adrinand.ktile.core.layout.computeSelectedBounds
-import com.adrinand.ktile.core.layout.findKeyPositions
 import kotlinx.coroutines.delay
 import java.awt.Rectangle
 import java.util.logging.Logger

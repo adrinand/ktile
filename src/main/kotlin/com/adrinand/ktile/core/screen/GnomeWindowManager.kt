@@ -29,7 +29,7 @@ private val LEADING_BOOLEAN_REGEX = Regex("""\(\s*(true|false)""")
  * reference to the captured active window and can move/resize it on demand.
  */
 class GnomeWindowManager : SingleBackendWindowManager<WindowHandle.Wayland>() {
-    override val logger = Logger.getLogger("com.adrinand.ktile.core.screen.GnomeWindowManager")
+    override val logger: Logger = Logger.getLogger("com.adrinand.ktile.core.screen.GnomeWindowManager")
 
     /**
      * Returns `true` if the companion GNOME Shell extension is available on
@@ -45,9 +45,8 @@ class GnomeWindowManager : SingleBackendWindowManager<WindowHandle.Wayland>() {
         return output != null
     }
 
-    override fun isCompatibleHandle(window: WindowHandle): Boolean =
-        window is WindowHandle.Wayland &&
-            window.backend == BACKEND_NAME
+    override fun castHandle(window: WindowHandle): WindowHandle.Wayland? =
+        (window as? WindowHandle.Wayland)?.takeIf { it.backend == BACKEND_NAME }
 
     override fun retrieveActiveWindow(): WindowHandle.Wayland? {
         val output = callMethod("CaptureActiveWindow") ?: return null

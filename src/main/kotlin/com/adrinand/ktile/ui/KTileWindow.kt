@@ -45,7 +45,6 @@ private const val FULLSCREEN_WAIT_TIMEOUT_MS = 2_000L
 private const val FADE_IN_MS = 100
 private const val FADE_OUT_MS = 60
 private const val MAX_SELECTED_KEYS = 2
-private const val SETTLE_DELAY_MS = 250L
 
 @Composable
 fun KTileWindow(
@@ -90,20 +89,19 @@ fun KTileWindow(
         if (selectedKeys.size == MAX_SELECTED_KEYS) {
             val win = composeWindow ?: return
             val workArea = win.workAreaBounds()
-            logger.info { "onKeyPressed: closing preview then arranging" }
-            onClose()
+            val keysToArrange = selectedKeys
+            logger.info { "onKeyPressed: arranging then closing preview" }
             coroutineScope.launch {
-                logger.info { "onKeyPressed: waiting settle delay before arranging" }
-                delay(SETTLE_DELAY_MS.milliseconds)
                 val bounds =
                     arrangementController.arrange(
                         rowWeights = layout.rowWeights.toList(),
                         columnWeights = layout.columnWeights.toList(),
                         keyLabels = layout.keyLabels.map { row -> row.toList() },
-                        selectedKeys = selectedKeys,
+                        selectedKeys = keysToArrange,
                         workArea = workArea,
                     )
-                logger.info { "onKeyPressed: arrange returned $bounds" }
+                logger.info { "onKeyPressed: arrange returned $bounds, closing preview" }
+                onClose()
             }
         }
     }

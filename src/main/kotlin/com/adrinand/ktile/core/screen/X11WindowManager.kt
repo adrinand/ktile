@@ -38,7 +38,7 @@ object X11WindowManager : SingleBackendWindowManager<WindowHandle.X11>() {
         val maxHorz: X11.Atom,
     )
 
-    override fun isCompatibleHandle(window: WindowHandle): Boolean = window is WindowHandle.X11
+    override fun castHandle(window: WindowHandle): WindowHandle.X11? = window as? WindowHandle.X11
 
     override fun retrieveActiveWindow(): WindowHandle.X11? {
         val x11 = X11.INSTANCE

@@ -15,9 +15,10 @@ abstract class SingleBackendWindowManager<H : WindowHandle> : WindowManager {
     protected abstract val logger: Logger
 
     /**
-     * Returns `true` if [window] is a handle this backend understands.
+     * Casts [window] to this backend's handle type, or returns `null` when the
+     * handle belongs to a different backend.
      */
-    protected abstract fun isCompatibleHandle(window: WindowHandle): Boolean
+    protected abstract fun castHandle(window: WindowHandle): H?
 
     /**
      * Returns the currently active window as this backend's handle type.
@@ -59,7 +60,4 @@ abstract class SingleBackendWindowManager<H : WindowHandle> : WindowManager {
         }
         focusHandle(handle)
     }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun castHandle(window: WindowHandle): H? = if (isCompatibleHandle(window)) window as H else null
 }

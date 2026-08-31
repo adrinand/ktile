@@ -33,7 +33,7 @@ private val LEADING_BOOLEAN_REGEX = Regex("""\(\s*(true|false)""")
  * active window and move/resize it.
  */
 class KdeWindowManager : SingleBackendWindowManager<WindowHandle.Wayland>() {
-    override val logger = Logger.getLogger("com.adrinand.ktile.core.screen.KdeWindowManager")
+    override val logger: Logger = Logger.getLogger("com.adrinand.ktile.core.screen.KdeWindowManager")
 
     /**
      * Returns `true` if the companion KWin script is available on the session
@@ -46,9 +46,8 @@ class KdeWindowManager : SingleBackendWindowManager<WindowHandle.Wayland>() {
         return output != null
     }
 
-    override fun isCompatibleHandle(window: WindowHandle): Boolean =
-        window is WindowHandle.Wayland &&
-            window.backend == BACKEND_NAME
+    override fun castHandle(window: WindowHandle): WindowHandle.Wayland? =
+        (window as? WindowHandle.Wayland)?.takeIf { it.backend == BACKEND_NAME }
 
     override fun retrieveActiveWindow(): WindowHandle.Wayland? {
         val output = callMethod("getActiveWindow") ?: return null

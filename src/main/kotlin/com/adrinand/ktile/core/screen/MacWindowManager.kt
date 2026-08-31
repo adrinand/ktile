@@ -12,11 +12,11 @@ import java.util.logging.Logger
  * grant Accessibility permissions to KTile before these calls succeed.
  */
 class MacWindowManager : SingleBackendWindowManager<WindowHandle.Mac>() {
-    override val logger = Logger.getLogger("com.adrinand.ktile.core.screen.MacWindowManager")
+    override val logger: Logger = Logger.getLogger("com.adrinand.ktile.core.screen.MacWindowManager")
 
     private val app = ApplicationServices.INSTANCE
 
-    override fun isCompatibleHandle(window: WindowHandle): Boolean = window is WindowHandle.Mac
+    override fun castHandle(window: WindowHandle): WindowHandle.Mac? = window as? WindowHandle.Mac
 
     override fun retrieveActiveWindow(): WindowHandle.Mac? {
         val systemWide = app.AXUIElementCreateSystemWide()
