@@ -3,7 +3,7 @@
 import org.jetbrains.compose.ExperimentalComposeLibrary
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
-group = "com.adferdv"
+group = "com.adrinand"
 version = "1.0.0"
 
 val isLinux = System.getProperty("os.name").lowercase().contains("linux")
@@ -80,7 +80,7 @@ afterEvaluate {
 
 compose.desktop {
     application {
-        mainClass = "com.adferdv.ktile.MainKt"
+        mainClass = "com.adrinand.ktile.MainKt"
         jvmArgs +=
             listOf(
                 "--add-opens=java.desktop/java.awt=ALL-UNNAMED",
@@ -91,7 +91,19 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "ktile"
             packageVersion = version.toString()
+            description = "A keyboard-driven tiling window manager"
+            copyright = "© 2026 adrinand"
+            vendor = "adrinand"
             appResourcesRootDir.set(rustLibsDir)
+
+            macOS {
+                bundleID = "com.adrinand.ktile"
+                iconFile.set(project.file("src/main/resources/ktile.icns"))
+            }
+
+            linux {
+                iconFile.set(project.file("src/main/resources/ktile.png"))
+            }
         }
     }
 }
@@ -109,16 +121,16 @@ kover {
                 // App bootstrap and OS-specific integration code: not unit-testable headless,
                 // covered by functional tests (core.screen) and per-OS integration tests (providers, window, tray).
                 classes(
-                    "com.adferdv.ktile.MainKt*",
-                    "com.adferdv.ktile.ComposableSingletons*",
-                    "com.adferdv.ktile.core.screen.*",
-                    "com.adferdv.ktile.core.hotkey.LinuxEvdevHotkeyProvider*",
-                    "com.adferdv.ktile.core.hotkey.JNativeHookProvider*",
-                    "com.adferdv.ktile.core.hotkey.KtileHotkeyNative*",
-                    "com.adferdv.ktile.core.hotkey.InputDevicePermissionChecker",
-                    "com.adferdv.ktile.ui.KTileWindowKt*",
-                    "com.adferdv.ktile.ui.KTileTrayKt*",
-                    "com.adferdv.ktile.ui.GlobalHotkeyRegistration*",
+                    "com.adrinand.ktile.MainKt*",
+                    "com.adrinand.ktile.ComposableSingletons*",
+                    "com.adrinand.ktile.core.screen.*",
+                    "com.adrinand.ktile.core.hotkey.LinuxEvdevHotkeyProvider*",
+                    "com.adrinand.ktile.core.hotkey.JNativeHookProvider*",
+                    "com.adrinand.ktile.core.hotkey.KtileHotkeyNative*",
+                    "com.adrinand.ktile.core.hotkey.InputDevicePermissionChecker",
+                    "com.adrinand.ktile.ui.KTileWindowKt*",
+                    "com.adrinand.ktile.ui.KTileTrayKt*",
+                    "com.adrinand.ktile.ui.GlobalHotkeyRegistration*",
                 )
             }
         }
@@ -151,4 +163,40 @@ tasks {
     named("check") {
         dependsOn("ktlintCheck", "detekt", "test", "koverVerify")
     }
+}
+
+tasks.register("printVersion") {
+    group = "help"
+    description = "Prints the project version"
+    doLast {
+        println(project.version)
+    }
+}
+
+tasks.register<Exec>("installGnomeExtension") {
+    group = "distribution"
+    description = "Installs the GNOME Shell extension for native Wayland support"
+    commandLine(
+        "bash",
+        "-c",
+        """
+        install -d "${System.getProperty("user.home")}/.local/share/gnome-shell/extensions/ktile@adrinand"
+        cp -r extensions/gnome/ktile@adrinand/* "${System.getProperty("user.home")}/.local/share/gnome-shell/extensions/ktile@adrinand/"
+        echo "GNOME Shell extension installed. Log Out and enable it using: gnome-extensions enable ktile@adrinand"
+        """.trimIndent(),
+    )
+}
+
+tasks.register<Exec>("installKdeScript") {
+    group = "distribution"
+    description = "Installs the KDE KWin script for native Wayland support"
+    commandLine(
+        "bash",
+        "-c",
+        """
+        install -d "${System.getProperty("user.home")}/.local/share/kwin/scripts/ktile.kwin"
+        cp -r extensions/kde/ktile.kwin/* "${System.getProperty("user.home")}/.local/share/kwin/scripts/ktile.kwin/"
+        echo "KDE KWin script installed. Enable it in KWin script settings."
+        """.trimIndent(),
+    )
 }

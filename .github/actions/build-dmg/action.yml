@@ -1,0 +1,54 @@
+name: Build DMG
+
+description: Builds and uploads a macOS DMG for KTile.
+
+inputs:
+  version:
+    description: Project version used in the DMG file name.
+    required: true
+  artifact-name:
+    description: Name passed to actions/upload-artifact.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 21
+
+    - name: Generate ICNS icon
+      shell: bash
+      run: |
+        mkdir -p ktile.iconset
+        sips -z 16 16     src/main/resources/ktile.png --out ktile.iconset/icon_16x16.png
+        sips -z 32 32     src/main/resources/ktile.png --out ktile.iconset/icon_16x16@2x.png
+        sips -z 32 32     src/main/resources/ktile.png --out ktile.iconset/icon_32x32.png
+        sips -z 64 64     src/main/resources/ktile.png --out ktile.iconset/icon_32x32@2x.png
+        sips -z 128 128   src/main/resources/ktile.png --out ktile.iconset/icon_128x128.png
+        sips -z 256 256   src/main/resources/ktile.png --out ktile.iconset/icon_128x128@2x.png
+        sips -z 256 256   src/main/resources/ktile.png --out ktile.iconset/icon_256x256.png
+        sips -z 512 512   src/main/resources/ktile.png --out ktile.iconset/icon_256x256@2x.png
+        sips -z 512 512   src/main/resources/ktile.png --out ktile.iconset/icon_512x512.png
+        sips -z 1024 1024 src/main/resources/ktile.png --out ktile.iconset/icon_512x512@2x.png
+        iconutil -c icns ktile.iconset -o src/main/resources/ktile.icns
+
+    - name: Build DMG
+      shell: bash
+      run: ./gradlew packageDmg
+
+    - name: Rename artifact
+      shell: bash
+      run: |
+        mkdir -p build/artifacts
+        ARCH="$(uname -m)"
+        cp "build/compose/binaries/main/dmg/KTile-${{ inputs.version }}.dmg" \
+           "build/artifacts/KTile-${{ inputs.version }}-${ARCH}.dmg"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: build/artifacts/*.dmg

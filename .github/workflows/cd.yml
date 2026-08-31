@@ -1,0 +1,171 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      exists: ${{ steps.check.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(./gradlew -q printVersion)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check if tag exists
+        id: check
+        run: |
+          if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-macos-arm:
+    runs-on: macos-latest
+    needs: version
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build DMG
+        uses: ./.github/actions/build-dmg
+        with:
+          version: ${{ needs.version.outputs.version }}
+          artifact-name: macos-arm64-dmg
+
+  build-macos-intel:
+    runs-on: macos-13
+    needs: version
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build DMG
+        uses: ./.github/actions/build-dmg
+        with:
+          version: ${{ needs.version.outputs.version }}
+          artifact-name: macos-intel-dmg
+
+  build-linux-x64:
+    runs-on: ubuntu-latest
+    needs: version
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm fakeroot libfuse2
+
+      - name: Build .deb and .rpm
+        run: |
+          ./gradlew packageDeb
+          ./gradlew packageRpm
+
+      - name: Build AppImage
+        id: appimage
+        uses: ./.github/actions/build-appimage
+        with:
+          version: ${{ needs.version.outputs.version }}
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p build/artifacts
+          cp "build/compose/binaries/main/deb/ktile_${{ needs.version.outputs.version }}_amd64.deb" build/artifacts/
+          cp "build/compose/binaries/main/rpm/ktile-${{ needs.version.outputs.version }}-1.x86_64.rpm" build/artifacts/
+          cp "${{ steps.appimage.outputs.appimage-path }}" build/artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-artifacts
+          path: build/artifacts/*
+
+  build-linux-arm64:
+    runs-on: ubuntu-24.04-arm
+    needs: version
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2
+
+      - name: Build AppImage
+        id: appimage
+        uses: ./.github/actions/build-appimage
+        with:
+          version: ${{ needs.version.outputs.version }}
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p build/artifacts
+          cp "${{ steps.appimage.outputs.appimage-path }}" build/artifacts/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-arm64-appimage
+          path: build/artifacts/*.AppImage
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [version, build-macos-arm, build-macos-intel, build-linux-x64, build-linux-arm64]
+    if: needs.version.outputs.exists == 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -R artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: ${{ needs.version.outputs.tag }}
+          files: artifacts/*
+          fail_on_unmatched_files: true
+          make_latest: true

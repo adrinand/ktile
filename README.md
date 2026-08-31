@@ -47,7 +47,7 @@ A desktop tiling window manager for Linux and macOS. Press the global hotkey to 
    ./gradlew run
    ```
 
-   KTile uses JNativeHook for global hotkeys. The first run may prompt for accessibility permissions.
+   KTile uses JNativeHook for global hotkeys and the Accessibility API to arrange windows. The first run may prompt for accessibility and input-monitoring permissions; both must be granted for KTile to work.
 
 ## Global hotkey
 
@@ -57,15 +57,51 @@ A desktop tiling window manager for Linux and macOS. Press the global hotkey to 
 
 ### Wayland note
 
-On Wayland, `Super+K` can conflict with the compositor's own Super binding (e.g., opening the Activities overview). For the most reliable experience, bind `Super+K` directly in your compositor's keyboard shortcuts to run:
+On Wayland, `Super+K` can conflict with the compositor's own Super binding (e.g., opening the Activities overview). The built-in hotkey uses the `evdev` listener, which requires access to `/dev/input/event*` and a virtual device via `/dev/uinput`. Both are usually granted by the `input` and `uinput` groups.
+
+If the default hotkey conflicts with your compositor, change it in KTile's settings to a combination that is not already bound.
+
+### Native Wayland window management
+
+X11 provides a universal window-management API, but Wayland intentionally does not. KTile therefore uses a different backend depending on the session:
+
+| Session | Backend | Notes |
+|---|---|---|
+| X11 | X11 | Works out of the box. |
+| Wayland + GNOME | GNOME Shell extension | Install `ktile@adrinand` (see below). |
+| Wayland + KDE Plasma | KWin script | Install `ktile.kwin` (see below). |
+| Wayland + other | X11 fallback | Only XWayland windows can be tiled. |
+| macOS | Accessibility API | Grants Accessibility permission when prompted. |
+
+#### Installing the GNOME Shell extension
+
+For local development:
 
 ```bash
-ktile --toggle
+./gradlew installGnomeExtension
 ```
 
-KTile uses a single-instance Unix socket, so this command will toggle the running instance instead of starting a second one.
+Then enable it and restart GNOME Shell (on Wayland this usually requires logging out and back in):
 
-If you prefer the built-in `evdev` listener, the app must be able to open `/dev/input/event*` and create a virtual device via `/dev/uinput` for key forwarding. Both are usually granted by the `input` and `uinput` groups.
+```bash
+gnome-extensions enable ktile@adrinand
+```
+
+#### Installing the KDE KWin script
+
+For local development:
+
+```bash
+./gradlew installKdeScript
+```
+
+Then enable it in KWin's script settings or with:
+
+```bash
+kwriteconfig6 --file kwinrc --group Plugins --key ktileEnabled true
+```
+
+Restart KWin afterward.
 
 ## Tests
 
@@ -77,8 +113,21 @@ This runs Kotlin tests, ktlint, detekt, and the Rust test suite for the hotkey l
 
 ## Building a distribution
 
+Local builds produce packages for the host OS:
+
 ```bash
-./gradlew package
+./gradlew package      # .deb / .rpm on Linux, .dmg on macOS
 ```
 
-Produces `.deb`, `.rpm`, or `.dmg` depending on the host OS.
+The AppImage is built by the CD workflow because it requires `appimagetool`, which the workflow downloads automatically.
+
+The release CD workflow (`.github/workflows/cd.yml`) builds and publishes:
+
+- `KTile-<version>-arm64.dmg`
+- `KTile-<version>-x86_64.dmg`
+- `ktile_<version>_amd64.deb`
+- `ktile-<version>-1.x86_64.rpm`
+- `KTile-<version>-x86_64.AppImage`
+- `KTile-<version>-aarch64.AppImage`
+
+on every push to `main` for which the version in `build.gradle.kts` has changed.

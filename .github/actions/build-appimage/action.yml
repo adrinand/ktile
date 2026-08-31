@@ -1,0 +1,86 @@
+name: Build AppImage
+
+description: Builds an AppImage from the Compose Desktop unpackaged app.
+
+inputs:
+  version:
+    description: Project version used in the AppImage file name.
+    required: true
+
+outputs:
+  appimage-path:
+    description: Absolute path to the generated AppImage.
+    value: ${{ steps.build.outputs.appimage-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Create unpackaged app
+      shell: bash
+      run: ./gradlew createDistributable
+
+    - name: Build AppImage
+      id: build
+      shell: bash
+      run: |
+        set -euo pipefail
+        VERSION="${{ inputs.version }}"
+        APP_NAME="ktile"
+        PACKAGE_NAME="KTile"
+        APP_DIR="$PWD/build/AppDir"
+        COMPOSE_APP_DIR="$PWD/build/compose/binaries/main/app/$APP_NAME"
+        ARCH="$(uname -m)"
+        APPIMAGE_NAME="${PACKAGE_NAME}-${VERSION}-${ARCH}.AppImage"
+
+        rm -rf "$APP_DIR"
+        mkdir -p "$APP_DIR/usr/lib/$APP_NAME"
+        mkdir -p "$APP_DIR/usr/share/applications"
+        mkdir -p "$APP_DIR/usr/share/icons/hicolor/256x256/apps"
+
+        cp -a "$COMPOSE_APP_DIR/"* "$APP_DIR/usr/lib/$APP_NAME/"
+
+        cp "src/main/resources/$APP_NAME.png" "$APP_DIR/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
+        cp "src/main/resources/$APP_NAME.png" "$APP_DIR/$APP_NAME.png"
+
+        cat > "$APP_DIR/$APP_NAME.desktop" <<EOF
+        [Desktop Entry]
+        Name=$PACKAGE_NAME
+        Exec=$APP_NAME
+        Icon=$APP_NAME
+        Type=Application
+        Categories=Utility;
+        Terminal=false
+        EOF
+
+        cp "$APP_DIR/$APP_NAME.desktop" "$APP_DIR/usr/share/applications/$APP_NAME.desktop"
+
+        cat > "$APP_DIR/AppRun" <<'EOF'
+        #!/bin/bash
+        HERE="$(dirname "$(readlink -f "$0")")"
+        exec "$HERE/usr/lib/ktile/bin/ktile" "$@"
+        EOF
+        chmod +x "$APP_DIR/AppRun"
+
+        mkdir -p build/tools
+        APPIMAGETOOL="build/tools/appimagetool-$ARCH.AppImage"
+        if [[ ! -f "$APPIMAGETOOL" ]]; then
+          case "$ARCH" in
+            x86_64)
+              URL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+              ;;
+            aarch64)
+              URL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-aarch64.AppImage"
+              ;;
+            *)
+              echo "Unsupported architecture for appimagetool: $ARCH"
+              exit 1
+              ;;
+          esac
+          curl -L -o "$APPIMAGETOOL" "$URL"
+          chmod +x "$APPIMAGETOOL"
+        fi
+
+        rm -f "build/$APPIMAGE_NAME"
+        "$APPIMAGETOOL" "$APP_DIR" "build/$APPIMAGE_NAME"
+
+        echo "appimage-path=$PWD/build/$APPIMAGE_NAME" >> "$GITHUB_OUTPUT"

@@ -33,6 +33,10 @@ build
 kls_database.db
 .idea/
 
+# Generated icons
+src/main/resources/ktile.icns
+*.iconset/
+
 # Rust
 lib/ktile-hotkey/target
 **/*.rs.bk
