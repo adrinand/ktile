@@ -1,4 +1,4 @@
-package com.adrinand.ktile.core.layout
+package com.adrinand.ktile.core.screen
 
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
