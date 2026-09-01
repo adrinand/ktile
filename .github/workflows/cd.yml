@@ -53,7 +53,7 @@ jobs:
           artifact-name: macos-arm64-dmg
 
   build-macos-intel:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     needs: version
     steps:
       - uses: actions/checkout@v4
